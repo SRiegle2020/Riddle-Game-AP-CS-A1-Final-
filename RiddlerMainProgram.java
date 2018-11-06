@@ -4,22 +4,32 @@
  */
 import java.util.*;
 import java.io.*;
+import java.awt.Robot;
+import java.awt.event.KeyEvent;
+import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
 
 public class RiddlerMainProgram
 {
 	public static void main(String[] args) throws IOException, InterruptedException
 	{
 		String randomriddle=randomriddle(); //Skips to randomriddle() method to choose the riddle Riddler asks
+		
 		/*RIDDLE AND ANSWER DISTINGUISHER
 		 *This code parses the line from the .dat file to seperate the riddle from its answer.
 		 */
-		 
 		int comma=randomriddle.indexOf(",");
 		String randomanswer=randomriddle.substring(comma+1);
 		randomriddle=randomriddle.substring(0,comma);
 		System.out.println("RIDDLER: "+randomriddle);
 		
-		Scanner keyboard=new Scanner(System.in);
+		/*USER INPUTS ANSWER
+		 *Taken from Stack Overflow solution at https://stackoverflow.com/questions/12803151/how-to-interrupt-a-scanner-nextline-call. Provides time limit for user input
+		 */
+		new TimeoutThread().start();
+		new ReaderThread().start();
+		
+		/*Scanner keyboard=new Scanner(System.in);
 		String guessedanswer=keyboard.nextLine();
 		if(guessedanswer.equals(randomanswer))
 		{
@@ -30,7 +40,9 @@ public class RiddlerMainProgram
 			System.out.println("RIDDLER: INCORRECT.");
 			System.out.println("     THE ANSWER WAS "+randomanswer+", OBVIOUSLY.");
 		}
+		*/
 	} //Close main Method
+	
 	
 	public static String randomriddle()
 	{
@@ -83,4 +95,42 @@ public class RiddlerMainProgram
 	}
 } //Close RiddlerMainProgram Class
 
-//////////DEFINE VARIABLES, RANDOM NUMBER//////////
+/*ADDITIONAL THREADS TO ALLOW TIME LIMIT ON ANSWERING RIDDLES
+ *Taken from Stack Overflow solution at https://stackoverflow.com/questions/12803151/how-to-interrupt-a-scanner-nextline-call. Provides time limit for user input. Very slightly modified.
+ */
+class ReaderThread extends Thread
+{
+    @Override
+    public void run()
+    {
+        System.out.print("ANSWER: ");
+        try(Scanner in = new Scanner(System.in))
+        {
+            String inputanswer = in.nextLine();
+            if(inputanswer.trim().isEmpty())
+            {
+                inputanswer="I DON'T KNOW."; //Default Answer to Riddle
+            }
+            System.out.println(inputanswer);
+        }
+    }
+}
+
+class TimeoutThread extends Thread
+{
+    @Override
+    public void run()
+    {
+        try
+        {
+            Thread.sleep(TimeUnit.SECONDS.toMillis(15));
+            Robot robot = new Robot();
+            robot.keyPress(KeyEvent.VK_ENTER);
+            robot.keyRelease(KeyEvent.VK_ENTER);
+        }
+        catch(Exception e) 
+        {
+            e.printStackTrace();
+        }
+    }
+}
