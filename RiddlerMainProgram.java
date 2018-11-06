@@ -2,16 +2,17 @@
  *FINAL PROJECT FOR FIRST SEMESTER AP COMPUTER SCIENCE
  *Main Driver for Riddler Program
  */
-import java.util.*;
+import java.util.*; //Import Libraries
 import java.io.*;
-import java.awt.Robot;
+
+import java.awt.Robot; //Libraries used to time Input (https://stackoverflow.com/questions/12803151/how-to-interrupt-a-scanner-nextline-call)
 import java.awt.event.KeyEvent;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
 public class RiddlerMainProgram
-{
-	public static void main(String[] args) throws IOException, InterruptedException
+{	
+	public static void main(String[] args) throws IOException, InterruptedException, IllegalMonitorStateException
 	{
 		String randomriddle=randomriddle(); //Skips to randomriddle() method to choose the riddle Riddler asks
 		
@@ -25,24 +26,32 @@ public class RiddlerMainProgram
 		
 		/*USER INPUTS ANSWER
 		 *Taken from Stack Overflow solution at https://stackoverflow.com/questions/12803151/how-to-interrupt-a-scanner-nextline-call. Provides time limit for user input
-		 */
+		*/
 		new TimeoutThread().start();
-		new ReaderThread().start();
+		new ReaderThread().start();		
+		try //Forces main Method to wait until both Timeout and Reader die
+		{
+			RiddlerMainProgram.class.wait();
+		}
+		catch(IllegalMonitorStateException e)
+		{
+		}
+		String inputanswer=answer(); //Reads answer file to learn user input
 		
-		/*Scanner keyboard=new Scanner(System.in);
-		String guessedanswer=keyboard.nextLine();
-		if(guessedanswer.equals(randomanswer))
+		/*TEST FOR CORRECT ANSWER
+		 *This section tests if the Player answered correctly or incorrectly.
+		 */
+		Thread.sleep(3000); //Three seconds of drumroll	
+		if(inputanswer.equals(randomanswer)) //Correct Answer
 		{
 			System.out.println("RIDDLER: YOU GUESSED IT.");
 		}
-		else
+		else //Incorrect Answer
 		{
 			System.out.println("RIDDLER: INCORRECT.");
 			System.out.println("     THE ANSWER WAS "+randomanswer+", OBVIOUSLY.");
 		}
-		*/
 	} //Close main Method
-	
 	
 	public static String randomriddle()
 	{
@@ -51,14 +60,14 @@ public class RiddlerMainProgram
 		 */
 		int number=0;
 		String placeholder="";
-		try
+		try //Reads until null
 		{
 			File length=new File("riddles.dat");
 			BufferedReader reader=new BufferedReader(new FileReader(length));
 			placeholder=reader.readLine();
 			while(placeholder!=null)
 			{
-				number=number+1;
+				number=number+1; //Adds number for each riddle; end result is number of riddles
 				placeholder=reader.readLine();
 			}
 			reader.close();
@@ -80,7 +89,7 @@ public class RiddlerMainProgram
 		{
 			File selectedriddle=new File("riddles.dat");
 			BufferedReader reader2=new BufferedReader(new FileReader(selectedriddle));
-			while(n<random)
+			while(n<random) //Keeps changing riddle until at desired riddle
 			{
 				n=n+1;
 				riddle=reader2.readLine();
@@ -93,6 +102,23 @@ public class RiddlerMainProgram
 		}
 		return(riddle);
 	}
+	
+	public static String answer()
+	{
+		String answer="";
+		try //Takes answer from answer.dat into program
+		{
+			File selectedriddle=new File("answer.dat");
+			BufferedReader reader3=new BufferedReader(new FileReader(selectedriddle));
+			answer=reader3.readLine();
+			reader3.close();
+		}
+		catch(IOException e)
+		{
+			System.err.println("ERROR 404: FILE IS NONEXISTANT");
+		}
+		return(answer);
+	}
 } //Close RiddlerMainProgram Class
 
 /*ADDITIONAL THREADS TO ALLOW TIME LIMIT ON ANSWERING RIDDLES
@@ -103,7 +129,7 @@ class ReaderThread extends Thread
     @Override
     public void run()
     {
-        System.out.print("ANSWER: ");
+        System.out.print("INPUT ANSWER: ");
         try(Scanner in = new Scanner(System.in))
         {
             String inputanswer = in.nextLine();
@@ -111,11 +137,35 @@ class ReaderThread extends Thread
             {
                 inputanswer="I DON'T KNOW."; //Default Answer to Riddle
             }
-            System.out.println(inputanswer);
+            System.out.println("RIDDLER: WE HAVE AN ANSWER!");
+            System.out.println("     DRUM ROLL PLEASE!");
+            
+            /*WRITE ANSWER TO FILE
+             *Instead of messing with multithread synchronization, I decided to transfer the Strings by writing and then reading.
+             */
+            File outFile=new File("answer.dat");
+            FileOutputStream fooStream = new FileOutputStream(outFile, false); //This fancy thing will prevent appending in the answer .dat. Found online at https://stackoverflow.com/questions/1016278/is-this-the-best-way-to-rewrite-the-content-of-a-file-in-java
+            BufferedWriter writer=new BufferedWriter(new FileWriter(outFile,true));
+            writer.write(inputanswer);
+            writer.close();
+            try
+            {
+            	notifyAll();
+            }
+            catch(IllegalMonitorStateException e)
+            {
+            }
         }
+        catch(IOException e)
+		{
+			System.err.println("ERROR 404: FILE IS NONEXISTANT");
+		}
     }
 }
 
+/*ADDITIONAL THREADS TO ALLOW TIME LIMIT ON ANSWERING RIDDLES
+ *Taken from Stack Overflow solution at https://stackoverflow.com/questions/12803151/how-to-interrupt-a-scanner-nextline-call. Provides time limit for user input. Very slightly modified.
+ */
 class TimeoutThread extends Thread
 {
     @Override
